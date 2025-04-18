@@ -75,8 +75,32 @@ class Blind_Manager:
     attempts = 3
 
     def __init__(self):
-        pass
-    pass
+        self.score_sum = 0
+         
+    
+    def blind_tracker(self, deck_m):
+        for round,blind in enumerate(Blind_Manager.blind_values):
+            print("--- Blind Goal: ",blind," ---")
+            self.score_sum = 0
+            if round % 3 == 0:
+                if round == 0:
+                    print("~ New Game. Shuffle Cards. ~")
+                else:
+                    print("~ Boss Blind defeated. Reshuffle Cards. ~")
+                deck_m.shuffle_deck()
+
+            for attempt in range(Blind_Manager.attempts):
+                self.score_sum += deck_m.draw_cards_and_get_best_hand()
+                print("Current Score:", self.score_sum)
+                if self.score_sum >= blind:
+                    print("**** You've reached the Blind Goal ****")
+                    break
+            if self.score_sum <= blind:
+                print("**** You did not meet the Goal for the Blind ****")
+                return round
+                
+
+    
 
 class Deck_Manager:
     evaluator = deuces.Evaluator()
@@ -181,11 +205,11 @@ class Deck_Manager:
             return [best_hand_type, best_cards]
 
     def draw_cards_and_get_best_hand(self) -> list:
-        print(f'{self.hand_in_play} - previous hand')
+        #print(f'{self.hand_in_play} - previous hand')
         self.hand_in_play += self.draw_cards(8-len(self.hand_in_play))
-        print(f'{self.hand_in_play} - current hand')
+        #print(f'{self.hand_in_play} - current hand')
         best_hand_type, best_cards = self.get_best_hand(self.hand_in_play)
-        print(f'{best_hand_type}: {best_cards}\nAll Cards: {self.hand_in_play}')
+        print(f'{best_hand_type}: {best_cards}')#\nAll Cards: {self.hand_in_play}')
         self.hand_in_play = [card for card in self.hand_in_play if card not in best_cards]
         print(f'{self.hand_in_play} - cards left over')
         score = list(self.hand_values[best_hand_type])
@@ -193,5 +217,7 @@ class Deck_Manager:
         if not best_cards: return 0
         for card in best_cards: 
             score[0] += self.rank_values[card[0]]
-        print(f'{score[0]*score[1]} from {score}')
+        #print(f'{score[0]*score[1]} from {score}')
         return score[0]*score[1]
+
+# %%
