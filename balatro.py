@@ -72,7 +72,7 @@ class Blind_Manager:
     ante_vals += ante_endless_vals
     blind_mult = [1, 1.5, 2]
     blind_values = [int(round[0]*round[1]) for round in list(itertools.product(ante_vals,blind_mult))]
-    attempts = 3
+    attempts = 4
 
     def __init__(self):
         self.score_sum = 0
@@ -131,10 +131,13 @@ class Deck_Manager:
         'Pair': (10, 2),
         'High Card': (5, 1),
     }
-    
+    discards = 3
+
     def __init__(self):
         self.deck = []
         self.hand_in_play = []
+        self.discards_used = 0
+        self.prev_discards_used = 0
         for suit in self.suits:
             for rank, value, in self.rank_values.items():
                 self.deck.append(Card(rank, suit))
@@ -152,6 +155,8 @@ class Deck_Manager:
         self.deck_queue = (card for card in self.deck)
         self.first_hand_dealt = False
         self.hand_in_play = []
+        self.discards_used = 0
+        self.prev_discards_used = 0
     
     def draw_card(self):
         try:
@@ -203,21 +208,48 @@ class Deck_Manager:
         else:
             best_hand_type, best_cards = Card.get_ranks(cards_as_str)
             return [best_hand_type, best_cards]
+        
+    def discard_and_draw_cards(self):
+        self.hand_in_play.sort(key=lambda card:list(Deck_Manager.rank_values.keys()).index(card[0]))
+        lowest_cards = self.hand_in_play[3:] # lowest 5 cards
+        # print(f'Lowest: {lowest_cards} from {self.hand_in_play}')
+        self.hand_in_play = [card for card in self.hand_in_play if card not in lowest_cards]
+        self.hand_in_play += self.draw_cards(8-len(self.hand_in_play))
+        return self.get_best_hand(self.hand_in_play)
 
     def draw_cards_and_get_best_hand(self) -> list:
-        #print(f'{self.hand_in_play} - previous hand')
-        self.hand_in_play += self.draw_cards(8-len(self.hand_in_play))
-        #print(f'{self.hand_in_play} - current hand')
+        cards_played = 0
+        # print(f'{self.hand_in_play} - current hand')
+        if not self.first_hand_dealt:
+            self.hand_in_play += self.draw_cards(8-len(self.hand_in_play))
         best_hand_type, best_cards = self.get_best_hand(self.hand_in_play)
-        print(f'{best_hand_type}: {best_cards}')#\nAll Cards: {self.hand_in_play}')
+        print(f'{best_hand_type}: {best_cards}')
+        while(self.discards_used < self.discards):
+        # for discard in range(self.discards_used):
+            if best_hand_type in ['Pair', 'High Card']:
+                # print(f'Discard {self.discards_used+1}')
+                best_hand_type, best_cards = self.discard_and_draw_cards()
+                print(f'{best_hand_type}: {best_cards}')
+                self.discards_used += 1
+            else:
+                break
         self.hand_in_play = [card for card in self.hand_in_play if card not in best_cards]
-        print(f'{self.hand_in_play} - cards left over')
+        # print(f'{self.hand_in_play} - cards left over')
+        self.hand_in_play += self.draw_cards(8-len(self.hand_in_play))
         score = list(self.hand_values[best_hand_type])
         # apply jokerzzzzzzz
         if not best_cards: return 0
         for card in best_cards: 
             score[0] += self.rank_values[card[0]]
-        #print(f'{score[0]*score[1]} from {score}')
-        return score[0]*score[1]
+            cards_played += 1
+        # print(f'{score[0]*score[1]} from {score}')
+        data_dict = {
+            'score': score[0]*score[1],
+            'hand_type': best_hand_type,
+            'cards_played': cards_played,
+            'discards_used': self.discards_used-self.prev_discards_used
+        }
+        self.prev_discards_used = self.discards_used
+        return data_dict
 
 # %%
