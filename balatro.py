@@ -3,6 +3,7 @@ import random
 from collections import defaultdict
 import deuces
 import itertools
+from math import floor
 
 # %%
 class Card:
@@ -66,7 +67,7 @@ class Card:
     
 
 
-class Blind_Manager:
+class Run_Manager:
     ante_vals = [300, 800, 2000, 5000, 11000, 20000, 35000, 50000]
     ante_endless_vals = [1.1e+5, 5.6e+5, 7.2e+6, 3e+8, 4.7e+10, 2.9e+13, 7.7e+16, 8.6e+20]
     ante_vals += ante_endless_vals
@@ -75,32 +76,44 @@ class Blind_Manager:
     attempts = 4
 
     def __init__(self):
-        self.score_sum = 0
+        self.run_analytics = defaultdict(int)
+        self.round_score = 0
          
     
     def blind_tracker(self, deck_m):
-        for round,blind in enumerate(Blind_Manager.blind_values):
+        self.run_analytics.clear()
+        for round,blind in enumerate(self.blind_values):
             print("--- Blind Goal: ",blind," ---")
-            self.score_sum = 0
-            if round % 3 == 0:
-                if round == 0:
-                    print("~ New Game. Shuffle Cards. ~")
-                else:
-                    print("~ Boss Blind defeated. Reshuffle Cards. ~")
-                deck_m.shuffle_deck()
+            self.round_score = 0
+            for attempt in range(self.attempts):
+                run_dict = deck_m.draw_cards_and_get_best_hand()
+                print(run_dict)
+                self.round_score += run_dict['score']
+                self.run_analytics['Total Run Score'] += run_dict['score']
+                self.run_analytics['Total Discards Used'] += run_dict['discards_used']
+                self.run_analytics[(run_dict['hand_type'] + ' Count')] += 1
+                self.run_analytics['Total Cards Played'] += run_dict['cards_played']
 
-            for attempt in range(Blind_Manager.attempts):
-                self.score_sum += deck_m.draw_cards_and_get_best_hand()
-                print("Current Score:", self.score_sum)
-                if self.score_sum >= blind:
-                    print("**** You've reached the Blind Goal ****")
+                if run_dict['score'] > self.run_analytics['Best Hand Score']:
+                    self.run_analytics['Best Hand Score'] = run_dict['score']
+                    self.run_analytics['Hand played for Best Hand Score'] = run_dict['hand_type']
+
+                print("Current Round Score:", self.round_score)
+                if self.round_score >= blind:
+                    print("**** You've reached the Blind Goal ****\n")
+                    print("Total Run Score:", self.run_analytics['Total Run Score'],"\n")
                     break
-            if self.score_sum <= blind:
+            deck_m.shuffle_deck()
+            if self.round_score < blind:
                 print("**** You did not meet the Goal for the Blind ****")
-                return round
-                
+                self.run_analytics['Total Run Score'] = self.run_analytics['Total Run Score'] - self.round_score
+                self.run_analytics['Rounds Won'] = round
+                self.run_analytics['Rounds Played'] = round + 1
+                self.run_analytics['Antes Won'] = floor(self.run_analytics['Rounds Won']/3)
+                print("Total Run Score:", self.run_analytics['Total Run Score'],"\n")
+    # call function for Calculate Store and Clean up
+    # do cleanup
 
-    
 
 class Deck_Manager:
     evaluator = deuces.Evaluator()
@@ -223,16 +236,15 @@ class Deck_Manager:
         if not self.first_hand_dealt:
             self.hand_in_play += self.draw_cards(8-len(self.hand_in_play))
         best_hand_type, best_cards = self.get_best_hand(self.hand_in_play)
-        print(f'{best_hand_type}: {best_cards}')
         while(self.discards_used < self.discards):
         # for discard in range(self.discards_used):
             if best_hand_type in ['Pair', 'High Card']:
                 # print(f'Discard {self.discards_used+1}')
                 best_hand_type, best_cards = self.discard_and_draw_cards()
-                print(f'{best_hand_type}: {best_cards}')
                 self.discards_used += 1
             else:
                 break
+        # print(f'{best_hand_type}: {best_cards}')
         self.hand_in_play = [card for card in self.hand_in_play if card not in best_cards]
         # print(f'{self.hand_in_play} - cards left over')
         self.hand_in_play += self.draw_cards(8-len(self.hand_in_play))
