@@ -1,5 +1,6 @@
 # %%
 import random
+import pandas as pd
 from collections import defaultdict
 import deuces
 import itertools
@@ -76,19 +77,23 @@ class Run_Manager:
     attempts = 4
 
     def __init__(self):
-        self.run_analytics = defaultdict(int)
+        self.run_analytics = defaultdict(float)
         self.round_score = 0
+        self.discards = 0
+        self.output_df = pd.DataFrame()
          
     
     def blind_tracker(self, deck_m):
-        self.run_analytics.clear()
         for round,blind in enumerate(self.blind_values):
-            print("--- Blind Goal: ",blind," ---")
+            #print("--- Blind Goal: ",blind," ---")
+            #print(" *** Round " , round+1, "*** ")
             self.round_score = 0
+            self.discards = 0
             for attempt in range(self.attempts):
                 run_dict = deck_m.draw_cards_and_get_best_hand()
-                print(run_dict)
+                #print(run_dict)
                 self.round_score += run_dict['score']
+                self.discards += run_dict['discards_used']
                 self.run_analytics['Total Run Score'] += run_dict['score']
                 self.run_analytics['Total Discards Used'] += run_dict['discards_used']
                 self.run_analytics[(run_dict['hand_type'] + ' Count')] += 1
@@ -98,21 +103,43 @@ class Run_Manager:
                     self.run_analytics['Best Hand Score'] = run_dict['score']
                     self.run_analytics['Hand played for Best Hand Score'] = run_dict['hand_type']
 
-                print("Current Round Score:", self.round_score)
+                #print("Current Round Score:", self.round_score)
                 if self.round_score >= blind:
-                    print("**** You've reached the Blind Goal ****\n")
-                    print("Total Run Score:", self.run_analytics['Total Run Score'],"\n")
+                    #print("**** You've reached the Blind Goal ****\n")
+                    #print("Total Run Score:", self.run_analytics['Total Run Score'],"\n")
                     break
             deck_m.shuffle_deck()
             if self.round_score < blind:
-                print("**** You did not meet the Goal for the Blind ****")
+                #print("**** You did not meet the Goal for the Blind ****")
                 self.run_analytics['Total Run Score'] = self.run_analytics['Total Run Score'] - self.round_score
+                self.run_analytics['Total Discards Used'] = self.run_analytics['Total Discards Used'] - self.discards
                 self.run_analytics['Rounds Won'] = round
                 self.run_analytics['Rounds Played'] = round + 1
                 self.run_analytics['Antes Won'] = floor(self.run_analytics['Rounds Won']/3)
-                print("Total Run Score:", self.run_analytics['Total Run Score'],"\n")
-    # call function for Calculate Store and Clean up
-    # do cleanup
+                #print("Total Run Score:", self.run_analytics['Total Run Score'],"\n")
+                break
+        self.calculate_store_clean()
+
+    
+    
+    def calculate_store_clean(self):
+        print()
+        self.run_analytics['Run Average Score'] = round(self.run_analytics['Total Run Score']/self.run_analytics['Rounds Won'],1) if self.run_analytics['Rounds Won']!=0 else 0
+        self.run_analytics['Average Discards'] = round(self.run_analytics['Total Discards Used']/self.run_analytics['Rounds Won'],1) if self.run_analytics['Rounds Won']!=0 else 0
+        print(dict(self.run_analytics))
+        self.output_df = pd.concat([self.output_df, pd.DataFrame(self.run_analytics,index=[0])])
+        self.run_analytics.clear()
+
+    def batch_run(self,runs,deck_m):
+        for run in range(runs):
+            self.blind_tracker(deck_m)
+        self.output_df = self.output_df.fillna(0)
+        count_cols = [col for col in self.output_df.columns if ' Count' in col]
+        other_cols = [col for col in self.output_df.columns if ' Count' not in col]
+        self.output_df = self.output_df[other_cols + count_cols]
+        self.output_df.to_csv('run_analytics_output.csv')
+        self.output_df = pd.DataFrame()
+        
 
 
 class Deck_Manager:
