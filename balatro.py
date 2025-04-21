@@ -66,8 +66,6 @@ class Card:
                     break
         return [rank_class, relevant_cards]
     
-
-
 class Run_Manager:
     ante_vals = [300, 800, 2000, 5000, 11000, 20000, 35000, 50000]
     ante_endless_vals = [1.1e+5, 5.6e+5, 7.2e+6, 3e+8, 4.7e+10, 2.9e+13, 7.7e+16, 8.6e+20]
@@ -111,8 +109,8 @@ class Run_Manager:
             deck_m.shuffle_deck()
             if self.round_score < blind:
                 #print("**** You did not meet the Goal for the Blind ****")
-                self.run_analytics['Total Run Score'] = self.run_analytics['Total Run Score'] - self.round_score
-                self.run_analytics['Total Discards Used'] = self.run_analytics['Total Discards Used'] - self.discards
+                self.run_analytics['Total Run Score'] = self.run_analytics['Total Run Score']
+                self.run_analytics['Total Discards Used'] = self.run_analytics['Total Discards Used']
                 self.run_analytics['Rounds Won'] = round
                 self.run_analytics['Rounds Played'] = round + 1
                 self.run_analytics['Antes Won'] = floor(self.run_analytics['Rounds Won']/3)
@@ -123,10 +121,9 @@ class Run_Manager:
     
     
     def calculate_store_clean(self):
-        print()
-        self.run_analytics['Run Average Score'] = round(self.run_analytics['Total Run Score']/self.run_analytics['Rounds Won'],1) if self.run_analytics['Rounds Won']!=0 else 0
-        self.run_analytics['Average Discards'] = round(self.run_analytics['Total Discards Used']/self.run_analytics['Rounds Won'],1) if self.run_analytics['Rounds Won']!=0 else 0
-        print(dict(self.run_analytics))
+        self.run_analytics['Run Average Score'] = round(self.run_analytics['Total Run Score']/self.run_analytics['Rounds Played'],1) if self.run_analytics['Rounds Played']!=0 else 0
+        self.run_analytics['Average Discards'] = round(self.run_analytics['Total Discards Used']/self.run_analytics['Rounds Played'],1) if self.run_analytics['Rounds Played']!=0 else 0
+        # print(dict(self.run_analytics))
         self.output_df = pd.concat([self.output_df, pd.DataFrame(self.run_analytics,index=[0])])
         self.run_analytics.clear()
 
@@ -264,7 +261,6 @@ class Deck_Manager:
             self.hand_in_play += self.draw_cards(8-len(self.hand_in_play))
         best_hand_type, best_cards = self.get_best_hand(self.hand_in_play)
         while(self.discards_used < self.discards):
-        # for discard in range(self.discards_used):
             if best_hand_type in ['Pair', 'High Card']:
                 # print(f'Discard {self.discards_used+1}')
                 best_hand_type, best_cards = self.discard_and_draw_cards()
@@ -276,11 +272,21 @@ class Deck_Manager:
         # print(f'{self.hand_in_play} - cards left over')
         self.hand_in_play += self.draw_cards(8-len(self.hand_in_play))
         score = list(self.hand_values[best_hand_type])
-        # apply jokerzzzzzzz
         if not best_cards: return 0
         for card in best_cards: 
             score[0] += self.rank_values[card[0]]
             cards_played += 1
+            # if card[1] == 'd': score[1] += 3 #greedy joker
+            # if card[0] == 'K': score[1] *= 1.5 #baron
+            # if card[0] in ['A','2','3','5','8']: score[1] += 8 #fibonnaci
+            # if card[0] in ['T','4']: 
+            #     score[0] += 10 
+            #     score[1] += 4 #walkie talkie
+            # if card[0] in ['K','Q']: score[1] *= 2 #triboulet
+        # if best_hand_type in ['Two Pair', 'Full House']: score[1] += 10 #mad joker
+        # if best_hand_type in ['Two Pair', 'Full House']: score[0] += 80 #clever joker
+        # score[1] += random.randint(0,23) #misprint joker
+
         # print(f'{score[0]*score[1]} from {score}')
         data_dict = {
             'score': score[0]*score[1],
