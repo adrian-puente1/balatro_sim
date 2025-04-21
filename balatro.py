@@ -134,7 +134,7 @@ class Run_Manager:
         for run in range(runs):
             self.blind_tracker(deck_m)
         self.output_df = self.output_df.fillna(0)
-        count_cols = [col for col in self.output_df.columns if ' Count' in col]
+        count_cols = sorted([col for col in self.output_df.columns if ' Count' in col])
         other_cols = [col for col in self.output_df.columns if ' Count' not in col]
         self.output_df = self.output_df[other_cols + count_cols]
         self.output_df.to_csv('run_analytics_output.csv')
