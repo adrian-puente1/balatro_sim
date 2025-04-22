@@ -9,6 +9,7 @@ To run a simulation, please:
     - Uncomment/Comment lines mentioning jokers in Deck_Manager.
     draw_cards_and_get_best_hand
     - Save any changes to file
+    - Note: if there are any issues with updates not registering, restart your environment. First cell in balatro.ipynb should prevent that issue though
 5. Run both cells in balatro.ipynb
     1. First cell imports class file with Deck_Manager and Run_Manager
     2. Second cell does r = 10,000 runs
