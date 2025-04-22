@@ -1,3 +1,9 @@
+File list:
+- README.md - code documentation
+- balatro.py - class definitions that handle running the simulation, Jokers can be enabled/disabled here, and discards can be set to any integer value
+- balatro.ipynb - Jupyter notebook with 1 cell for importing balatro.py, and another cell that initializes class objects and triggers simulation of 10,000 Balatro runs
+- requirements.txt - standard format for python packages required to be installed to run code
+
 To run a simulation, please:
 1. Create a Python virtual environment
     - For more info, see https://www.geeksforgeeks.org/create-virtual-environment-using-venv-python/
